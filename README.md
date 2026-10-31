@@ -66,9 +66,19 @@ Epoch 10 had a lower detection loss but lower validation macro-F1. Detection los
 
 Times include full training and validation evaluations after each epoch. The detector also performs separate inference and loss passes and includes checkpoint/history writes. These are measured run times under different workloads and GPU counts, not a controlled hardware speed comparison. The two loss values measure different objectives and must not be ranked against each other. CNN checkpoints were selected by validation loss, while detector checkpoints were selected by validation macro-F1.
 
-Both models saved and restored their selected checkpoints in Kaggle. Checkpoint files are not currently available in the local export. The CNN export was deferred at the user's request; recovery of the selected weights, or a documented reproducible retraining, is required before final test evaluation. Reports and any recovered checkpoints remain local and excluded from Git.
+### CNN versus Faster R-CNN: conclusion
 
-The formal CNN/Faster R-CNN comparison, transfer-learning experiments, scratch ViT, final test evaluation, and personal synthesis remain to be completed.
+The comparison independently verified matching image IDs and true labels for all 6,000 validation images, then recomputed both models' accuracy and macro-F1 from their saved predictions. The CNN made 51 errors versus 67 for Faster R-CNN: 16 fewer errors and an accuracy advantage of 0.267 percentage points.
+
+![CNN versus Faster R-CNN validation comparison](assets/plots/cnn_vs_faster_rcnn_comparison.png)
+
+For this single-digit MNIST experiment, the CNN provided slightly better validation classification results with a much shorter recorded run time. Faster R-CNN adds proposal generation and box regression even though each image contains one digit with a full-image box. This experiment does not evaluate genuine object localization.
+
+The findings apply to these configurations and one training run per model. Different checkpoint-selection rules, GPU counts, and evaluation workloads limit the comparison; the results do not establish general superiority. The test set remains unevaluated.
+
+Both selected checkpoints are now preserved locally and their SHA256 manifests have been verified. The CNN checkpoint was recovered through a repeat run with matching recorded validation results. The comparison retains the original CNN run time of 32.10 seconds. Reports and checkpoints remain local and excluded from Git.
+
+The CNN/Faster R-CNN validation comparison is complete. Transfer-learning experiments, scratch ViT, final test evaluation, and personal synthesis remain to be completed.
 
 The eight [GitHub issues](https://github.com/soulaimane-22/Deep-Learning-Lab2/issues) track the roadmap: setup, CNN, Faster R-CNN, their comparison, VGG16, AlexNet, scratch ViT, and the final report.
 
