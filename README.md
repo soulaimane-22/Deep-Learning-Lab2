@@ -25,7 +25,7 @@ The notebooks record installed package versions and GPU information. Their setup
 
 ## Data and comparison protocol
 
-The Kaggle setup verified 60,000 official training images and 10,000 test images, each measuring 28 by 28 pixels. A stratified split with seed 42 reserves 6,000 training images for validation. All three executed notebooks use the same 54,000 training, 6,000 validation, and 10,000 test image partitions. The matching split hash confirms identical source indices.
+The Kaggle setup verified 60,000 official training images and 10,000 test images, each measuring 28 by 28 pixels. A stratified split with seed 42 reserves 6,000 training images for validation. All four executed notebooks use the same 54,000 training, 6,000 validation, and 10,000 test image partitions. The matching split hash confirms identical source indices.
 
 The setup also verified CUDA execution, finite gradients, valid labels, and coverage of all ten digits. Training class counts range from 4,879 to 6,068, so no resampling was applied. The environment used Python 3.13.15, PyTorch 2.11.0+cu128, torchvision 0.26.0+cu128, and Tesla T4 GPUs.
 
@@ -69,6 +69,18 @@ Fine-tuning raised validation accuracy from about 92% to 99.10%. Epoch 4 had the
 
 At epoch 5, training loss continued to decrease while validation loss increased from 0.043520 to about 0.0669, with validation accuracy still at 99.10%. This suggests increasing overfitting and supports retaining epoch 4. The full five-epoch run took 39.04 minutes, including per-epoch evaluation and checkpoint writes.
 
+### AlexNet
+
+AlexNet starts with ImageNet-pretrained weights and a new ten-class output layer. It uses the same three-channel conversion, resize to 256, center crop to 224, and ImageNet normalization as VGG16. The adapted model has 57,044,810 parameters.
+
+Two warm-up epochs trained only the output layer using Adam with learning rate 0.001. Three fine-tuning epochs updated the last convolution layer at learning rate 0.00001 and the classifier at 0.0001. Earlier convolution layers remained frozen. Training used float32 and a global batch size of 32 across two T4 GPUs.
+
+Epoch 5 was selected by the lowest validation cross-entropy, even though epoch 4 had slightly higher accuracy. Its restored checkpoint independently reproduced 98.80% accuracy, 0.987928 macro-F1, and 72 errors on the 6,000 validation images. Digit 8 had the lowest recall (97.44%), while digit 9 had the lowest F1 score (0.9808). The largest individual confusion was digit 4 predicted as 9, with nine examples.
+
+![AlexNet training and validation curves](assets/plots/alexnet_learning_curves.png)
+
+Fine-tuning raised validation accuracy from 94.53% after warm-up to 98.80% at the selected checkpoint. The complete five-epoch run took 6.25 minutes, including per-epoch evaluation and checkpoint writes.
+
 ### Recorded validation results
 
 | Model | Selected epoch | Accuracy | Macro-F1 | Loss | Loss type | Run time | GPUs |
@@ -76,22 +88,23 @@ At epoch 5, training loss continued to decrease while validation loss increased 
 | CNN | 10 | 99.15% | 0.991446 | 0.035260 | Cross-entropy | 32.10 seconds | 1 T4 |
 | Faster R-CNN | 9 | 98.8833% | 0.988829 | 0.034690 | Total detection loss | 57.20 minutes | 2 T4s |
 | VGG16 | 4 | 99.10% | 0.991022 | 0.043520 | Cross-entropy | 39.04 minutes | 2 T4s |
+| AlexNet | 5 | 98.80% | 0.987928 | 0.042269 | Cross-entropy | 6.25 minutes | 2 T4s |
 
-Times include full training and validation evaluations after each epoch. The detector also performs separate inference and loss passes and includes checkpoint/history writes. These are measured run times under different workloads and GPU counts, not a controlled hardware speed comparison. Detection loss combines different objectives and is interpreted separately from classifier cross-entropy. CNN and VGG16 checkpoints were selected by validation loss, while detector checkpoints were selected by validation macro-F1.
+Times include full training and validation evaluations after each epoch. The detector also performs separate inference and loss passes and includes checkpoint/history writes. These are measured run times under different workloads and GPU counts, not a controlled hardware speed comparison. Detection loss combines different objectives and is interpreted separately from classifier cross-entropy. CNN, VGG16, and AlexNet checkpoints were selected by validation loss, while detector checkpoints were selected by validation macro-F1.
 
-### CNN, Faster R-CNN, and VGG16: conclusion
+### Part 1: four-model conclusion
 
-The comparison independently verified matching image IDs and true labels for all 6,000 validation images, then recomputed each model's accuracy and macro-F1 from its saved predictions. The CNN made 51 errors, VGG16 made 54, and Faster R-CNN made 67. VGG16 was only 0.05 percentage points below the CNN in accuracy and made 13 fewer errors than Faster R-CNN.
+The comparison independently verified matching image IDs and true labels for all 6,000 validation images, then recomputed each model's accuracy and macro-F1 from its saved predictions. The CNN made 51 errors, VGG16 made 54, Faster R-CNN made 67, and AlexNet made 72. VGG16 was only 0.05 percentage points below the CNN in accuracy. AlexNet was 0.35 percentage points below the CNN and completed its run in 6.25 minutes, compared with 39.04 minutes for VGG16.
 
-![CNN, Faster R-CNN, and VGG16 validation comparison](assets/plots/cnn_faster_rcnn_vgg16_comparison.png)
+![Part 1 validation comparison](assets/plots/part1_validation_comparison.png)
 
 For this single-digit MNIST experiment, the small CNN provided slightly better validation classification results with a much shorter recorded run time. Fine-tuned VGG16 reached similar accuracy but used a much larger model and larger input images. Faster R-CNN adds proposal generation and box regression even though each image contains one digit with a full-image box. This experiment does not evaluate genuine object localization.
 
 The findings apply to these configurations and one training run per model. Pretraining, input sizes, training budgets, checkpoint-selection rules, GPU counts, and evaluation workloads differ. These results do not establish general superiority. The test set remains unevaluated.
 
-All three selected checkpoints are preserved locally and their SHA256 manifests have been verified. The CNN checkpoint was recovered through a repeat run with matching recorded validation results. The comparison retains the original CNN run time of 32.10 seconds. Reports and checkpoints remain local and excluded from Git.
+All four selected checkpoints are preserved locally and their SHA256 manifests have been verified. The CNN checkpoint was recovered through a repeat run with matching recorded validation results. The comparison retains the original CNN run time of 32.10 seconds. Reports and checkpoints remain local and excluded from Git.
 
-The CNN, Faster R-CNN, and VGG16 experiments and their validation comparison are complete. AlexNet fine-tuning, scratch ViT, final test evaluation, and personal synthesis remain to be completed.
+The four Part 1 model experiments and their validation comparison are complete. Scratch ViT, final test evaluation, and personal synthesis remain to be completed.
 
 The eight [GitHub issues](https://github.com/soulaimane-22/Deep-Learning-Lab2/issues) track the roadmap: setup, CNN, Faster R-CNN, their comparison, VGG16, AlexNet, scratch ViT, and the final report.
 
@@ -101,3 +114,4 @@ The eight [GitHub issues](https://github.com/soulaimane-22/Deep-Learning-Lab2/is
 - [Assigned ViT tutorial](https://medium.com/mlearning-ai/vision-transformers-from-scratch-pytorch-a-step-by-step-guide-96c3313c2e0c).
 - [Torchvision Faster R-CNN documentation](https://docs.pytorch.org/vision/stable/models/faster_rcnn.html).
 - [Torchvision VGG16 documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.vgg16.html).
+- [Torchvision AlexNet documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.alexnet.html).
