@@ -25,7 +25,9 @@ The notebooks record installed package versions and GPU information. Their setup
 
 ## Data and comparison protocol
 
-The expected official MNIST partitions contain 60,000 training and 10,000 test images. The setup checks these sizes, then reserves 6,000 official training images for stratified validation using seed 42. This gives 54,000 training, 6,000 validation, and 10,000 test images for every model.
+The Kaggle setup verified 60,000 official training images and 10,000 test images, each measuring 28 by 28 pixels. A stratified split with seed 42 reserves 6,000 training images for validation. Both executed notebooks use the same 54,000 training, 6,000 validation, and 10,000 test image partitions. The matching split hash confirms identical source indices.
+
+The setup also verified CUDA execution, finite gradients, valid labels, and coverage of all ten digits. Training class counts range from 4,879 to 6,068, so no resampling was applied. The environment used Python 3.13.15, PyTorch 2.11.0+cu128, torchvision 0.26.0+cu128, and Tesla T4 GPUs.
 
 Model and checkpoint choices use validation only. The final test comparison is performed after all configurations are frozen. We report accuracy, macro-F1 across ten digits, loss, and training time. GPU, epochs, batch size, transformations, and pretrained initialization are documented for each experiment.
 
@@ -35,7 +37,38 @@ VGG16 and AlexNet use pretrained weights and model-specific input transforms. Th
 
 ## Progress and results
 
-The repository structure and Issue 1 setup cells are prepared. Kaggle execution is pending; no experimental results are claimed yet. The final report will summarize both parts, compare all five models, show significant figures, and include a brief personal synthesis.
+### CNN
+
+The CNN uses two convolution blocks with 32 and 64 channels. Each block uses a 3-by-3 kernel, stride 1, padding 1, ReLU, and 2-by-2 max pooling. A 128-unit fully connected layer, ReLU, dropout of 0.25, and a ten-logit output form the classifier. The model has 421,642 trainable parameters and was trained from scratch with Adam, learning rate 0.001, batch size 64, and unweighted cross-entropy for ten epochs.
+
+Epoch 10 was selected by the lowest validation loss. It achieved 99.15% validation accuracy and 0.991446 macro-F1, with 51 errors among 6,000 images. Training accuracy was 99.85%, a gap of 0.70 percentage points. Every digit achieved an F1 score above 0.98; digits 8 and 9 had the lowest F1 scores.
+
+![CNN training and validation curves](assets/plots/cnn_learning_curves.png)
+
+Validation loss fluctuated after the first few epochs but reached its minimum at epoch 10. These results describe validation performance; the test set has not been evaluated.
+
+### Faster R-CNN
+
+The full detector uses a small custom backbone trained from scratch, a region proposal network, RoI pooling, and classification and box-regression heads. It has 484,388 trainable parameters. Ten epochs of Adam training used learning rate 0.001 and a global batch size of 32, split across two T4 GPUs with DistributedDataParallel. Digit labels 0-9 map to detector labels 1-10; background occupies label 0. Inference retains the highest-scoring detection with a fixed score threshold of 0.0.
+
+Epoch 9 was selected by the highest validation macro-F1. Its restored weights independently reproduced 98.8833% validation accuracy and 0.988829 macro-F1, with 67 errors and no missing detections. Digit 9 had the lowest recall, followed by digit 3. The derived full-image boxes adapt the detector to digit classification; they do not establish performance on a genuine localization task.
+
+![Faster R-CNN training and validation curves](assets/plots/faster_rcnn_learning_curves.png)
+
+Epoch 10 had a lower detection loss but lower validation macro-F1. Detection loss combines several objectives, so it need not decrease in step with classification errors.
+
+### Recorded validation results
+
+| Model | Selected epoch | Accuracy | Macro-F1 | Loss | Loss type | Run time | GPUs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CNN | 10 | 99.15% | 0.991446 | 0.035260 | Cross-entropy | 32.10 seconds | 1 T4 |
+| Faster R-CNN | 9 | 98.8833% | 0.988829 | 0.034690 | Total detection loss | 57.20 minutes | 2 T4s |
+
+Times include full training and validation evaluations after each epoch. The detector also performs separate inference and loss passes and includes checkpoint/history writes. These are measured run times under different workloads and GPU counts, not a controlled hardware speed comparison. The two loss values measure different objectives and must not be ranked against each other. CNN checkpoints were selected by validation loss, while detector checkpoints were selected by validation macro-F1.
+
+Both models saved and restored their selected checkpoints in Kaggle. Checkpoint files are not currently available in the local export. The CNN export was deferred at the user's request; recovery of the selected weights, or a documented reproducible retraining, is required before final test evaluation. Reports and any recovered checkpoints remain local and excluded from Git.
+
+The formal CNN/Faster R-CNN comparison, transfer-learning experiments, scratch ViT, final test evaluation, and personal synthesis remain to be completed.
 
 The eight [GitHub issues](https://github.com/soulaimane-22/Deep-Learning-Lab2/issues) track the roadmap: setup, CNN, Faster R-CNN, their comparison, VGG16, AlexNet, scratch ViT, and the final report.
 
