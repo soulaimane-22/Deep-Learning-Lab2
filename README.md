@@ -152,8 +152,5 @@ Checkpoints and detailed reports remain local and excluded from Git. The CNN com
 
 ## References
 
-- The professor's Lab 2 assignment, supplied separately.
+- [MNIST dataset](https://www.kaggle.com/datasets/hojjatk/mnist-dataset).
 - [Assigned ViT tutorial](https://medium.com/mlearning-ai/vision-transformers-from-scratch-pytorch-a-step-by-step-guide-96c3313c2e0c).
-- [Torchvision Faster R-CNN documentation](https://docs.pytorch.org/vision/stable/models/faster_rcnn.html).
-- [Torchvision VGG16 documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.vgg16.html).
-- [Torchvision AlexNet documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.alexnet.html).
